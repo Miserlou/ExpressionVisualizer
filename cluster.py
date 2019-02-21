@@ -34,6 +34,10 @@ with open('./data/metadata_DANIO_RERIO.tsv', 'r') as f:
 
 print("All data loaded..")
 
+##
+# PCA 
+##
+
 # print("Performing PCA..")
 # pca = PCA(n_components=2)
 # pca_result = pca.fit_transform(df.values)
@@ -50,58 +54,147 @@ print("All data loaded..")
 # hv.save(histo,  'pca_'+ str(time.time()) + ".png")
 
 # Create test sets
-sex_labeled_samples = []
-sex_labaled_full_samples = {}
-sex_labels = {}
 
-for title in metadata.keys():
-	sample_metadata = metadata[title]
-	if sample_metadata['refinebio_sex'] in ['male', 'female']:
-		sex_labeled_samples.append(sample_metadata['refinebio_accession_code'])
-		sex_labaled_full_samples[sample_metadata['refinebio_accession_code']] = sample_metadata
-		# Label the sample in the frame - booleanize??
+##
+# Sex Only
+##
+
+# sex_labeled_samples = []
+# sex_labaled_full_samples = {}
+# sex_labels = {}
+
+# for title in metadata.keys():
+# 	sample_metadata = metadata[title]
+# 	if sample_metadata['refinebio_sex'] in ['male', 'female']:
+# 		sex_labeled_samples.append(sample_metadata['refinebio_accession_code'])
+# 		sex_labaled_full_samples[sample_metadata['refinebio_accession_code']] = sample_metadata
+# 		# Label the sample in the frame - booleanize??
+# 		try:
+# 			df[sample_metadata['refinebio_accession_code']]['sex'] = sample_metadata['refinebio_sex']
+# 		except Exception as e:
+# 			print(e)
+
+# 		if sample_metadata['refinebio_sex'] == 'female':
+# 			sex_labels[sample_metadata['refinebio_accession_code']] = 0
+# 		else:
+# 			sex_labels[sample_metadata['refinebio_accession_code']] = 1
+
+
+# sex_labeled_samples = list(set(sex_labeled_samples) - set(['E-MEXP-405-HS04', 'E-MEXP-405-HS03', 'E-MEXP-405-HS02', 'E-MEXP-405-HS01', 'GSM1707858', 'GSM1707864', 'GSM1707855']))
+# sex_labeled_data = df[sex_labeled_samples]
+
+# sex_labeled_data = sex_labeled_data.transpose()
+
+# # Split into test and training data
+# df_train, df_test = train_test_split(sex_labeled_data, train_size=.7, test_size=.3, random_state=0, shuffle=True)
+
+# sex_labels_train = []
+# df_train_trans = df_train.transpose()
+# for col in df_train_trans.columns.to_list():
+# 	sex_labels_train.append(sex_labels[col])
+
+# sex_labels_test = []
+# df_test_trans = df_test.transpose()
+# for col in df_test_trans.columns.to_list():
+# 	sex_labels_test.append(sex_labels[col])
+
+# # KNN
+# knn = KNeighborsClassifier()
+# knn.fit(df_train, sex_labels_train)
+# print('Accuracy of K-NN classifier on training set: {:.2f}'
+#      .format(knn.score(df_train, sex_labels_train)))
+# print('Accuracy of K-NN classifier on test set: {:.2f}'
+#      .format(knn.score(df_test, sex_labels_test)))
+
+# import pdb
+# pdb.set_trace()
+
+##
+# Generic w/ Imputation
+##
+
+metadata_labeled_samples = []
+metadata_labaled_full_samples = {}
+metadata_labels = {}
+
+refinebio_metadata_fields = [
+	'refinebio_accession_code',
+	'refinebio_age',
+	'refinebio_cell_line',
+	'refinebio_compound',
+	'refinebio_disease',
+	'refinebio_disease_stage',
+	'refinebio_genetic_information',
+	'refinebio_organism',
+	'refinebio_platform',
+	'refinebio_race',
+	'refinebio_sex',
+	'refinebio_source_archive_url',
+	'refinebio_source_database',
+	'refinebio_specimen_part',
+	'refinebio_subject',
+	'refinebio_time',
+	'refinebio_title',
+	'refinebio_treatment',
+]
+
+for refinebio_field in refinebio_metadata_fields:
+	print("Clustering and imputing metadatafield: " + refinebio_field)
+
+	for title in metadata.keys():
+		sample_metadata = metadata[title]
+		if sample_metadata[refinebio_field] is not None:
+			metadata_labeled_samples.append(sample_metadata['refinebio_accession_code'])
+			metadata_labaled_full_samples[sample_metadata['refinebio_accession_code']] = sample_metadata
+
+			# Put the result in the data itself?
+			# try:
+			# 	df[sample_metadata['refinebio_accession_code']][refinebio_field] = sample_metadata[refinebio_field]
+			# except Exception as e:
+			# 	print(e)
+
+			# XXX: Does this need to be booleanized?
+			# XXX: This is a hack! Don't do this!
+			metadata_labels[sample_metadata['refinebio_accession_code']] = sum([ord(x) for x in sample_metadata[refinebio_field]])
+
+	# We have to do this in a stupid way because of frames in the data not matching they're accession codes
+	metadata_labeled_data = pd.DataFrame()
+	frames_to_merge = []
+	for sample in metadata_labeled_samples:
 		try:
-			df[sample_metadata['refinebio_accession_code']]['sex'] = sample_metadata['refinebio_sex']
+			sample_frame = df[sample]
+			frames_to_merge.append(sample_frame)
 		except Exception as e:
-			print(e)
+			pass
+			# #print(e)
+			# print("Skipping poorly labelled sample " + str(sample))
 
-		if sample_metadata['refinebio_sex'] == 'female':
-			sex_labels[sample_metadata['refinebio_accession_code']] = 0
-		else:
-			sex_labels[sample_metadata['refinebio_accession_code']] = 1
+	metadata_labeled_data = pd.concat(frames_to_merge, axis=1, keys=None, join='outer', copy=False, sort=True)
+	metadata_labeled_data = metadata_labeled_data.transpose()
 
+	# Split into test and training data
+	df_train, df_test = train_test_split(metadata_labeled_data, train_size=.7, test_size=.3, random_state=0, shuffle=True)
 
-sex_labeled_samples = list(set(sex_labeled_samples) - set(['E-MEXP-405-HS04', 'E-MEXP-405-HS03', 'E-MEXP-405-HS02', 'E-MEXP-405-HS01', 'GSM1707858', 'GSM1707864', 'GSM1707855']))
-sex_labeled_data = df[sex_labeled_samples]
+	metadata_labels_train = []
+	df_train_trans = df_train.transpose()
+	for col in df_train_trans.columns.to_list():
+		metadata_labels_train.append(metadata_labels[col])
 
-sex_labeled_data = sex_labeled_data.transpose()
+	metadata_labels_test = []
+	df_test_trans = df_test.transpose()
+	for col in df_test_trans.columns.to_list():
+		metadata_labels_test.append(metadata_labels[col])
 
-# Split into test and training data
-df_train, df_test = train_test_split(sex_labeled_data, train_size=.7, test_size=.3, random_state=0, shuffle=True)
-
-sex_labels_train = []
-df_train_trans = df_train.transpose()
-for col in df_train_trans.columns.to_list():
-	sex_labels_train.append(sex_labels[col])
-
-sex_labels_test = []
-df_test_trans = df_test.transpose()
-for col in df_test_trans.columns.to_list():
-	sex_labels_test.append(sex_labels[col])
-
-# KNN
-knn = KNeighborsClassifier()
-knn.fit(df_train, sex_labels_train)
-print('Accuracy of K-NN classifier on training set: {:.2f}'
-     .format(knn.score(df_train, sex_labels_train)))
-print('Accuracy of K-NN classifier on test set: {:.2f}'
-     .format(knn.score(df_test, sex_labels_test)))
-
-import pdb
-pdb.set_trace()
+	# KNN
+	knn = KNeighborsClassifier()
+	knn.fit(df_train, metadata_labels_train)
+	print('Accuracy of kNN classifier on training set (' + str(len(df_train)) + ') for metadata field ' + refinebio_field + ': {:.2f}'
+	     .format(knn.score(df_train, metadata_labels_train)))
+	print('Accuracy of kNN classifier on test set (' + str(len(df_test)) + ') for metadata field' + refinebio_field + ': {:.2f}'
+	     .format(knn.score(df_test, metadata_labels_test)))
 
 # You have two options, bokeh requires selenium and phantomjs for png export, if you have those you can do 
-# hv.save(hv_obj, 'test.png') 
+# hv.save(hv_obj, 'test.png')
 # or you could use the matplotlib backend using 
 # hv.save(hv_obj, 'test.png', backend='matplotlib')
 
