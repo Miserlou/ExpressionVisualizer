@@ -139,11 +139,12 @@ refinebio_metadata_fields = [
 ]
 
 for refinebio_field in refinebio_metadata_fields:
-	print("Clustering and imputing metadatafield: " + refinebio_field)
+	print("\n\nClustering and imputing metadata field: " + refinebio_field)
 
+	ordmap = {}
 	for title in metadata.keys():
 		sample_metadata = metadata[title]
-		if sample_metadata[refinebio_field] is not None:
+		if sample_metadata[refinebio_field] not in [None, '']:
 			metadata_labeled_samples.append(sample_metadata['refinebio_accession_code'])
 			metadata_labaled_full_samples[sample_metadata['refinebio_accession_code']] = sample_metadata
 
@@ -155,7 +156,14 @@ for refinebio_field in refinebio_metadata_fields:
 
 			# XXX: Does this need to be booleanized?
 			# XXX: This is a hack! Don't do this!
-			metadata_labels[sample_metadata['refinebio_accession_code']] = sum([ord(x) for x in sample_metadata[refinebio_field]])
+			ordsum = sum([ord(x) for x in sample_metadata[refinebio_field]])
+			if ordsum not in ordmap.keys():
+				ordmap[ordsum] = sample_metadata[refinebio_field]
+			metadata_labels[sample_metadata['refinebio_accession_code']] = ordsum
+
+
+	# print("Mapped strings to integers: ")
+	# print(ordmap)
 
 	# We have to do this in a stupid way because of frames in the data not matching they're accession codes
 	metadata_labeled_data = pd.DataFrame()
@@ -186,11 +194,13 @@ for refinebio_field in refinebio_metadata_fields:
 		metadata_labels_test.append(metadata_labels[col])
 
 	# KNN
+	print('')
 	knn = KNeighborsClassifier()
 	knn.fit(df_train, metadata_labels_train)
-	print('Accuracy of kNN classifier on training set (' + str(len(df_train)) + ') for metadata field ' + refinebio_field + ': {:.2f}'
+	num_cats = len(set(metadata_labels_train))
+	print('Accuracy of kNN classifier on training set (' + str(len(df_train)) + ' labeled samples, ' + str(num_cats) + ' total categories) for metadata field ' + refinebio_field + ': {:.2f}'
 	     .format(knn.score(df_train, metadata_labels_train)))
-	print('Accuracy of kNN classifier on test set (' + str(len(df_test)) + ') for metadata field' + refinebio_field + ': {:.2f}'
+	print('Accuracy of kNN classifier on test set (' + str(len(df_test)) + ' labeled samples, ' + str(num_cats) + ' total categories) for metadata field' + refinebio_field + ': {:.2f}'
 	     .format(knn.score(df_test, metadata_labels_test)))
 
 # You have two options, bokeh requires selenium and phantomjs for png export, if you have those you can do 
