@@ -113,9 +113,7 @@ print("All data loaded..")
 # Generic w/ Imputation
 ##
 
-metadata_labeled_samples = []
-metadata_labaled_full_samples = {}
-metadata_labels = {}
+
 
 refinebio_metadata_fields = [
 	'refinebio_accession_code',
@@ -141,7 +139,11 @@ refinebio_metadata_fields = [
 for refinebio_field in refinebio_metadata_fields:
 	print("\n\nClustering and imputing metadata field: " + refinebio_field)
 
+	metadata_labeled_samples = []
+	metadata_labaled_full_samples = {}
+	metadata_labels = {}
 	ordmap = {}
+
 	for title in metadata.keys():
 		sample_metadata = metadata[title]
 		if sample_metadata[refinebio_field] not in [None, '']:
@@ -200,7 +202,7 @@ for refinebio_field in refinebio_metadata_fields:
 	num_cats = len(set(metadata_labels_train))
 	print('Accuracy of kNN classifier on training set (' + str(len(df_train)) + ' labeled samples, ' + str(num_cats) + ' total categories) for metadata field ' + refinebio_field + ': {:.2f}'
 	     .format(knn.score(df_train, metadata_labels_train)))
-	print('Accuracy of kNN classifier on test set (' + str(len(df_test)) + ' labeled samples, ' + str(num_cats) + ' total categories) for metadata field' + refinebio_field + ': {:.2f}'
+	print('Accuracy of kNN classifier on test set (' + str(len(df_test)) + ' labeled samples, ' + str(num_cats) + ' total categories) for metadata field ' + refinebio_field + ': {:.2f}'
 	     .format(knn.score(df_test, metadata_labels_test)))
 
 # You have two options, bokeh requires selenium and phantomjs for png export, if you have those you can do 
