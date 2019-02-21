@@ -164,8 +164,11 @@ for refinebio_field in refinebio_metadata_fields:
 			metadata_labels[sample_metadata['refinebio_accession_code']] = ordsum
 
 
-	# print("Mapped strings to integers: ")
-	# print(ordmap)
+	print("Mapped strings to integers: ")
+	print(ordmap)
+
+	if ordmap == {}:
+		continue
 
 	# We have to do this in a stupid way because of frames in the data not matching they're accession codes
 	metadata_labeled_data = pd.DataFrame()
