@@ -45,11 +45,16 @@ print("All data loaded..")
 # Repeat
 
 # Choose a sample. This should ideally be based on a property
-sample_copy = df[df.columns[0]]
+colname = df.columns[0]
+colname = "GSM85194" # Male regenerated fin tissue          
+
+sample_copy = df[colname]
 df['SYNTHETIC'] = sample_copy
 
+print("Imputing " + colname)
+
 # Set and impute the values, n% at a time
-iteration_percent = .20
+iteration_percent = .01
 all_rows = df.index
 all_cols = df.columns
 rows_to_impute = set(df.index)
@@ -78,7 +83,7 @@ while len(rows_to_impute) > 0:
 	df_imputed_matrix_transposed.columns = all_cols
 	df = df_imputed_matrix_transposed
 
+df.to_csv('synthetic_' + colname + "_" + str(iteration_percent) + '.tsv', sep='\t', encoding='utf-8')
+
 import pdb
 pdb.set_trace()
-
-df.to_csv('synthetic.tsv', sep='\t', encoding='utf-8')
